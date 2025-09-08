@@ -22,7 +22,30 @@ class TeamMember extends Model
     protected $casts = [
         'joined_at' => 'datetime',
         'is_active' => 'boolean',
+        'role' => \App\Enums\TeamMemberRole::class,
     ];
 
-    // todo: add relationships
+    /**
+     * Get the team
+     */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    /**
+     * Get the user
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the user who invited this member
+     */
+    public function inviter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'invited_by');
+    }
 }

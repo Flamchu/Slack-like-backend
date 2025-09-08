@@ -53,4 +53,47 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
         ];
     }
+
+    /**
+     * Get teams where user is owner
+     */
+    public function ownedTeams()
+    {
+        return $this->hasMany(Team::class, 'owner_id');
+    }
+
+    /**
+     * Get teams user belongs to through pivot table
+     */
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_members')
+            ->withPivot(['role', 'joined_at', 'invited_by', 'is_active'])
+            ->withTimestamps()
+            ->wherePivot('is_active', true);
+    }
+
+    /**
+     * Get user's team member records
+     */
+    public function teamMembers()
+    {
+        return $this->hasMany(TeamMember::class);
+    }
+
+    /**
+     * Get user's sent team invitations
+     */
+    public function sentInvitations()
+    {
+        return $this->hasMany(TeamInvitation::class, 'invited_by');
+    }
+
+    /**
+     * Get user's activity logs
+     */
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
 }

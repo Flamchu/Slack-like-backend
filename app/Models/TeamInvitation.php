@@ -26,5 +26,35 @@ class TeamInvitation extends Model
         'is_used' => 'boolean',
     ];
 
-    // todo: add relationships
+    /**
+     * Get the team
+     */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    /**
+     * Get the user who sent the invitation
+     */
+    public function inviter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    /**
+     * Check if invitation is expired
+     */
+    public function isExpired(): bool
+    {
+        return $this->expires_at < now();
+    }
+
+    /**
+     * Check if invitation is valid (not used and not expired)
+     */
+    public function isValid(): bool
+    {
+        return !$this->is_used && !$this->isExpired();
+    }
 }

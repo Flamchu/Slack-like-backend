@@ -4,7 +4,7 @@ namespace App\Http\Requests\Team;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class InviteUserRequest extends FormRequest
+class JoinTeamRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -20,7 +20,7 @@ class InviteUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email|max:255',
+            'token' => 'required|string|size:40',
         ];
     }
 
@@ -30,8 +30,8 @@ class InviteUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Email address is required',
-            'email.email' => 'Please provide a valid email address',
+            'token.required' => 'Invitation token is required',
+            'token.size' => 'Invalid invitation token format',
         ];
     }
 }
