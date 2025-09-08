@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Services\JwtService;
 use App\Exceptions\JwtException;
+use Illuminate\Support\Facades\Log;
 
 class JwtAuthMiddleware
 {
@@ -28,17 +29,20 @@ class JwtAuthMiddleware
             $token = $this->jwtService->getTokenFromRequest($request);
 
             if (!$token) {
-                throw JwtException::tokenNotProvided();
+                throw JwtException::tokenNotProvided([
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'path' => $request->path()
+                ]);
             }
 
             $user = $this->jwtService->getUserFromToken($token);
 
             if (!$user) {
-                throw JwtException::tokenInvalid();
-            }
-
-            if (!$user->is_active) {
-                throw JwtException::tokenInvalid();
+                throw JwtException::userNotFound([
+                    'ip' => $request->ip(),
+                    'token_hash' => hash('sha256', $token)
+                ]);
             }
 
             // set authenticated user
@@ -47,15 +51,41 @@ class JwtAuthMiddleware
                 return $user;
             });
 
+            $request->attributes->set('authenticated_user', $user);
+
+            // log successful authentication
+            Log::debug('JWT authentication successful', [
+                'user_id' => $user->id,
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+                'method' => $request->method()
+            ]);
+
         } catch (JwtException $e) {
-            return response()->json([
-                'error' => 'Unauthorized',
-                'message' => $e->getMessage()
-            ], $e->getCode());
+            // log authentication failure
+            Log::warning('JWT authentication failed', [
+                'error_code' => $e->getErrorCode(),
+                'message' => $e->getMessage(),
+                'ip' => $request->ip(),
+                'path' => $request->path(),
+                'context' => $e->getContext()
+            ]);
+
+            return $e->render($request);
         } catch (\Exception $e) {
+            // log unexpected errors
+            Log::error('Unexpected JWT middleware error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'ip' => $request->ip(),
+                'path' => $request->path()
+            ]);
+
             return response()->json([
-                'error' => 'Unauthorized',
-                'message' => 'Invalid token'
+                'error' => 'Authentication Error',
+                'message' => 'An unexpected error occurred during authentication',
+                'code' => 'UNEXPECTED_ERROR',
+                'timestamp' => now()->toISOString()
             ], 401);
         }
 
