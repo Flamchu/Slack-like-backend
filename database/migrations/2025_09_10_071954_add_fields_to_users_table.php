@@ -18,6 +18,11 @@ return new class extends Migration {
             $table->boolean('is_active')->default(true)->after('role');
             $table->timestamp('last_login_at')->nullable()->after('is_active');
         });
+
+        // Update the name column to be nullable since we're using first_name and last_name
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('name')->nullable()->change();
+        });
     }
 
     /**

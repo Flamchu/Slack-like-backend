@@ -13,12 +13,12 @@ use Illuminate\Support\Facades\DB;
 class TeamService
 {
     /**
-     * Create a new team
+     * create new team
      */
     public function createTeam(array $data, User $owner): Team
     {
         return DB::transaction(function () use ($data, $owner) {
-            // create the team
+            // create team
             $team = Team::create([
                 'name' => $data['name'],
                 'slug' => $data['slug'] ?? Str::slug($data['name']),
@@ -28,7 +28,7 @@ class TeamService
                 'is_active' => true,
             ]);
 
-            // add owner as team member
+            // add owner as member
             $this->addUserToTeam($team, $owner, TeamMemberRole::OWNER->value);
 
             return $team;
@@ -36,11 +36,11 @@ class TeamService
     }
 
     /**
-     * Invite user to team
+     * invite user to team
      */
     public function inviteUser(Team $team, string $email, User $invitedBy): TeamInvitation
     {
-        // check if invitation already exists and is valid
+        // check if invitation exists
         $existingInvitation = TeamInvitation::where('team_id', $team->id)
             ->where('email', $email)
             ->where('is_used', false)
@@ -51,7 +51,7 @@ class TeamService
             return $existingInvitation;
         }
 
-        // new invitation
+        // create invitation
         return TeamInvitation::create([
             'team_id' => $team->id,
             'email' => $email,
@@ -63,7 +63,7 @@ class TeamService
     }
 
     /**
-     * Process team invitation acceptance
+     * accept team invitation
      */
     public function acceptInvitation(string $token, User $user): bool
     {
@@ -78,7 +78,7 @@ class TeamService
         return DB::transaction(function () use ($invitation, $user) {
             $this->addUserToTeam($invitation->team, $user, TeamMemberRole::MEMBER->value, $invitation->invited_by);
 
-            // mark invitation as used
+            // mark as used
             $invitation->update([
                 'is_used' => true,
                 'accepted_at' => now(),
@@ -89,7 +89,7 @@ class TeamService
     }
 
     /**
-     * Add user to team
+     * add user to team
      */
     public function addUserToTeam(Team $team, User $user, string $role = 'member', ?int $invitedBy = null): bool
     {
@@ -110,7 +110,7 @@ class TeamService
     }
 
     /**
-     * Remove user from team
+     * remove user from team
      */
     public function removeUserFromTeam(Team $team, User $user): bool
     {
@@ -123,7 +123,7 @@ class TeamService
             return false;
         }
 
-        // don't allow owner to leave the team
+        // owner cannot leave
         if ($membership->role === TeamMemberRole::OWNER) {
             return false;
         }
@@ -134,7 +134,7 @@ class TeamService
     }
 
     /**
-     * Check if user is team member
+     * check if user is member
      */
     public function isTeamMember(Team $team, User $user): bool
     {
@@ -145,7 +145,7 @@ class TeamService
     }
 
     /**
-     * Check if user is team admin
+     * check if user is admin
      */
     public function isTeamAdmin(Team $team, User $user): bool
     {
@@ -158,7 +158,6 @@ class TeamService
             return false;
         }
 
-        // $membership->role is already a TeamMemberRole enum due to casting
         $role = $membership->role;
         return $role->hasAdminRights();
     }

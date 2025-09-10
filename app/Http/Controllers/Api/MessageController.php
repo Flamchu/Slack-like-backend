@@ -3,39 +3,205 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Channel;
+use App\Models\Message;
+use App\Models\Team;
+use App\Services\MessageService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
-    /**
-     * Display messages for a channel
-     */
-    public function index(Request $request, string $teamId, string $channelId)
+    protected MessageService $messageService;
+
+    public function __construct(MessageService $messageService)
     {
-        // todo: implement
+        $this->messageService = $messageService;
     }
 
     /**
-     * Store a new message
+     * display messages for a channel
      */
-    public function store(Request $request, string $teamId, string $channelId)
+    public function index(Request $request, Team $team, Channel $channel): JsonResponse
     {
-        // todo: implement
+        $messages = $channel->messages()
+            ->with([
+                'user:id,name,email',
+                'parent.user:id,name,email',
+                'replies.user:id,name,email',
+                'reactions.user:id,name,email'
+            ])
+            ->topLevel() // only get top-level messages, not replies
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        $formattedMessages = $messages->getCollection()->map(function ($message) {
+            return $this->formatMessage($message);
+        });
+
+        return response()->json([
+            'message' => 'Messages retrieved successfully',
+            'data' => $formattedMessages,
+            'pagination' => [
+                'current_page' => $messages->currentPage(),
+                'last_page' => $messages->lastPage(),
+                'per_page' => $messages->perPage(),
+                'total' => $messages->total(),
+            ]
+        ]);
     }
 
     /**
-     * Update a message
+     * store a new message
      */
-    public function update(Request $request, string $teamId, string $channelId, string $id)
+    public function store(Request $request, Team $team, Channel $channel): JsonResponse
     {
-        // todo: implement
+        $request->validate([
+            'content' => 'required|string|max:2000',
+            'parent_id' => 'nullable|exists:messages,id'
+        ]);
+
+        $message = $this->messageService->createMessage(
+            $channel,
+            Auth::user(),
+            [
+                'content' => $request->input('content'),
+                'parent_id' => $request->input('parent_id'),
+            ]
+        );
+
+        $message->load(['user:id,name,email', 'reactions.user:id,name,email']);
+
+        return response()->json([
+            'message' => 'Message created successfully',
+            'data' => $this->formatMessage($message)
+        ], 201);
     }
 
     /**
-     * Delete a message
+     * display a specific message
      */
-    public function destroy(string $teamId, string $channelId, string $id)
+    public function show(Team $team, Channel $channel, Message $message): JsonResponse
     {
-        // todo: implement
+        // verify message belongs to the channel
+        if ($message->channel_id !== $channel->id) {
+            return response()->json(['error' => 'Message not found in this channel'], 404);
+        }
+
+        $message->load([
+            'user:id,name,email',
+            'parent.user:id,name,email',
+            'replies.user:id,name,email',
+            'reactions.user:id,name,email'
+        ]);
+
+        return response()->json([
+            'message' => 'Message retrieved successfully',
+            'data' => $this->formatMessage($message)
+        ]);
+    }
+
+    /**
+     * update a message
+     */
+    public function update(Request $request, Team $team, Channel $channel, Message $message): JsonResponse
+    {
+        // verify message belongs to the channel
+        if ($message->channel_id !== $channel->id) {
+            return response()->json(['error' => 'Message not found in this channel'], 404);
+        }
+
+        // verify user owns the message
+        if ($message->user_id !== Auth::id()) {
+            return response()->json(['error' => 'You can only edit your own messages'], 403);
+        }
+
+        $request->validate([
+            'content' => 'required|string|max:2000'
+        ]);
+
+        $updatedMessage = $this->messageService->updateMessage(
+            $message,
+            Auth::user(),
+            ['content' => $request->input('content')]
+        );
+
+        $updatedMessage->load(['user:id,name,email', 'reactions.user:id,name,email']);
+
+        return response()->json([
+            'message' => 'Message updated successfully',
+            'data' => $this->formatMessage($updatedMessage)
+        ]);
+    }
+
+    /**
+     * delete a message
+     */
+    public function destroy(Team $team, Channel $channel, Message $message): JsonResponse
+    {
+        // verify message belongs to the channel
+        if ($message->channel_id !== $channel->id) {
+            return response()->json(['error' => 'Message not found in this channel'], 404);
+        }
+
+        // verify user owns the message
+        if ($message->user_id !== Auth::id()) {
+            return response()->json(['error' => 'You can only delete your own messages'], 403);
+        }
+
+        $this->messageService->deleteMessage($message, Auth::user());
+
+        return response()->json([
+            'message' => 'Message deleted successfully'
+        ]);
+    }
+
+    /**
+     * format message for api response
+     */
+    private function formatMessage(Message $message): array
+    {
+        $reactions = $message->reactions
+            ->groupBy('emoji')
+            ->map(function ($reactions, $emoji) {
+                return [
+                    'emoji' => $emoji,
+                    'count' => $reactions->count(),
+                    'users' => $reactions->map(function ($reaction) {
+                        return [
+                            'id' => $reaction->user->id,
+                            'name' => $reaction->user->name,
+                            'email' => $reaction->user->email,
+                        ];
+                    })
+                ];
+            })->values();
+
+        return [
+            'id' => $message->id,
+            'content' => $message->content,
+            'type' => $message->type->value,
+            'is_edited' => $message->is_edited,
+            'edited_at' => $message->edited_at?->toISOString(),
+            'created_at' => $message->created_at->toISOString(),
+            'updated_at' => $message->updated_at->toISOString(),
+            'user' => [
+                'id' => $message->user->id,
+                'name' => $message->user->name,
+                'email' => $message->user->email,
+            ],
+            'parent' => $message->parent ? [
+                'id' => $message->parent->id,
+                'content' => $message->parent->content,
+                'user' => [
+                    'id' => $message->parent->user->id,
+                    'name' => $message->parent->user->name,
+                    'email' => $message->parent->user->email,
+                ]
+            ] : null,
+            'replies_count' => $message->replies->count(),
+            'reactions' => $reactions,
+        ];
     }
 }

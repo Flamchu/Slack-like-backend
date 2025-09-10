@@ -27,7 +27,7 @@ class JwtService
     }
 
     /**
-     * Generate JWT token for user
+     * generate JWT token for user
      */
     public function generateToken(User $user): string
     {
@@ -50,7 +50,7 @@ class JwtService
     }
 
     /**
-     * Validate JWT token
+     * validate JWT token
      */
     public function validateToken(string $token): bool
     {
@@ -63,7 +63,7 @@ class JwtService
     }
 
     /**
-     * Get user from token
+     * get user from token
      */
     public function getUserFromToken(string $token): ?User
     {
@@ -90,14 +90,14 @@ class JwtService
         } catch (SignatureInvalidException $e) {
             throw JwtException::tokenInvalid(['reason' => 'signature_invalid']);
         } catch (JwtException $e) {
-            throw $e; // Re-throw JWT exceptions as-is
+            throw $e;
         } catch (\Exception $e) {
             throw JwtException::tokenMalformed(['error' => $e->getMessage()]);
         }
     }
 
     /**
-     * Refresh JWT token
+     * refresh JWT token
      */
     public function refreshToken(string $token): string
     {
@@ -117,19 +117,19 @@ class JwtService
                 throw JwtException::userInactive(['user_id' => $user->id]);
             }
 
-            // Validate token age for refresh window
+            // validate token age for refresh window
             $tokenAge = time() - $payload->iat;
             if ($tokenAge > $this->refreshTtl * 60) {
                 throw JwtException::tokenRefreshFailed(['reason' => 'token_too_old', 'age_seconds' => $tokenAge]);
             }
 
-            // Blacklist old token
+            // blacklist old token
             $this->blacklistToken($token);
 
-            // Create new token
+            // create new token
             $newToken = $this->generateToken($user);
 
-            // Log refresh activity
+            // log refresh activity
             \Log::info('JWT token refreshed', [
                 'user_id' => $user->id,
                 'old_token_hash' => hash('sha256', $token),
@@ -138,16 +138,15 @@ class JwtService
 
             return $newToken;
         } catch (JwtException $e) {
-            throw $e; // Re-throw JWT exceptions as-is
+            throw $e;
         } catch (ExpiredException $e) {
-            // Check if token is within refresh window
+            // check if token is within refresh window
             $parts = explode('.', $token);
             if (count($parts) === 3) {
                 $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])));
                 if ($payload && isset($payload->iat)) {
                     $tokenAge = time() - $payload->iat;
                     if ($tokenAge <= $this->refreshTtl * 60) {
-                        // Token is expired but within refresh window, continue with refresh
                         return $this->refreshToken($token);
                     }
                 }
@@ -159,7 +158,7 @@ class JwtService
     }
 
     /**
-     * Invalidate token (blacklist)
+     * invalidate token (blacklist)
      */
     public function invalidateToken(string $token): bool
     {
@@ -172,7 +171,7 @@ class JwtService
     }
 
     /**
-     * Decode JWT token
+     * decode JWT token
      */
     private function decodeToken(string $token, bool $validateExpiration = true): object
     {
@@ -207,13 +206,13 @@ class JwtService
     }
 
     /**
-     * Blacklist a token
+     * blacklist a token
      */
     private function blacklistToken(string $token): void
     {
         try {
             $tokenHash = hash('sha256', $token);
-            $ttl = $this->refreshTtl * 60; // Convert minutes to seconds
+            $ttl = $this->refreshTtl * 60; // convert minutes to seconds
             Cache::put("blacklisted_token:{$tokenHash}", true, $ttl);
 
             \Log::debug('Token blacklisted', [
@@ -230,7 +229,7 @@ class JwtService
     }
 
     /**
-     * Check if token is blacklisted
+     * check if token is blacklisted
      */
     private function isTokenBlacklisted(string $token): bool
     {
@@ -242,13 +241,13 @@ class JwtService
                 'error' => $e->getMessage(),
                 'token_hash' => hash('sha256', $token)
             ]);
-            // On error, assume token is not blacklisted to avoid false positives
+            // on error, assume token is not blacklisted
             return false;
         }
     }
 
     /**
-     * Extract token from request header
+     * extract token from request header
      */
     public function getTokenFromRequest($request = null): ?string
     {
@@ -266,7 +265,7 @@ class JwtService
     }
 
     /**
-     * Get token payload without validation (for debugging/inspection)
+     * get token payload without validation
      */
     public function getTokenPayload(string $token): ?array
     {
@@ -284,7 +283,7 @@ class JwtService
     }
 
     /**
-     * Check if token is expired without throwing exceptions
+     * check if token is expired without throwing exceptions
      */
     public function isTokenExpired(string $token): bool
     {
@@ -292,12 +291,12 @@ class JwtService
             $payload = $this->getTokenPayload($token);
             return $payload && isset($payload['exp']) && $payload['exp'] < time();
         } catch (\Exception $e) {
-            return true; // Assume expired on error
+            return true; // assume expired on error
         }
     }
 
     /**
-     * Get token expiration time
+     * get token expiration time
      */
     public function getTokenExpiration(string $token): ?int
     {
@@ -310,7 +309,7 @@ class JwtService
     }
 
     /**
-     * Get remaining token lifetime in seconds
+     * get remaining token lifetime in seconds
      */
     public function getTokenRemainingLifetime(string $token): int
     {

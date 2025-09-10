@@ -14,11 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'jwt.auth' => \App\Http\Middleware\JwtAuthMiddleware::class,
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'team.member' => \App\Http\Middleware\TeamMemberMiddleware::class,
-            'activity.log' => \App\Http\Middleware\ActivityLogMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
     })->create();

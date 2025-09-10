@@ -29,22 +29,27 @@ class TeamMemberMiddleware
             ], 401);
         }
 
-        // get team ID from route parameters
-        $teamId = $request->route('team');
+        // get team from route parameters (could be ID or Team model depending on route model binding)
+        $teamParam = $request->route('team');
 
-        if (!$teamId) {
+        if (!$teamParam) {
             return response()->json([
-                'error' => 'Team ID not provided'
+                'error' => 'Team parameter not provided'
             ], 400);
         }
 
-        // find the team
-        $team = Team::find($teamId);
+        // if the parameter is already a Team model instance, use it directly
+        // otherwise, treat it as an ID and find the team
+        if ($teamParam instanceof Team) {
+            $team = $teamParam;
+        } else {
+            $team = Team::find($teamParam);
 
-        if (!$team) {
-            return response()->json([
-                'error' => 'Team not found'
-            ], 404);
+            if (!$team) {
+                return response()->json([
+                    'error' => 'Team not found'
+                ], 404);
+            }
         }
 
         // check if user is a member of the team

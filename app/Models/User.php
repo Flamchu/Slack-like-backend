@@ -96,4 +96,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(ActivityLog::class);
     }
+
+    /**
+     * Get channels created by this user
+     */
+    public function createdChannels()
+    {
+        return $this->hasMany(Channel::class, 'created_by');
+    }
+
+    /**
+     * Get messages sent by this user
+     */
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
 }

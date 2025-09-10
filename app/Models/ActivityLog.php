@@ -24,5 +24,13 @@ class ActivityLog extends Model
         'metadata' => 'array',
     ];
 
-    // todo: add relationships
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }

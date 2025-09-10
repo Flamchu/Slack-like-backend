@@ -13,11 +13,11 @@ return new class extends Migration {
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('team_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('action');
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->json('metadata')->nullable();
-            $table->ipAddress('ip_address')->nullable();
+            $table->string('ip_address')->nullable();
             $table->text('user_agent')->nullable();
             $table->timestamps();
         });

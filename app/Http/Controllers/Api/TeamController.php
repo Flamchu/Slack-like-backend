@@ -22,7 +22,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Display a listing of teams the user belongs to
+     * display teams the user belongs to
      */
     public function index(Request $request): JsonResponse
     {
@@ -40,7 +40,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Store a newly created team
+     * create a new team
      */
     public function store(CreateTeamRequest $request): JsonResponse
     {
@@ -71,7 +71,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Display the specified team
+     * display the specified team
      */
     public function show(string $id): JsonResponse
     {
@@ -93,7 +93,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Update the specified team
+     * update the specified team
      */
     public function update(Request $request, string $id): JsonResponse
     {
@@ -139,7 +139,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Remove the specified team
+     * remove the specified team
      */
     public function destroy(string $id): JsonResponse
     {
@@ -178,7 +178,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Get team members
+     * get team members
      */
     public function members(string $id): JsonResponse
     {
@@ -212,7 +212,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Invite user to team
+     * invite user to team
      */
     public function invite(InviteUserRequest $request, string $id): JsonResponse
     {
@@ -265,7 +265,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Join team via invitation
+     * join team via invitation
      */
     public function join(JoinTeamRequest $request): JsonResponse
     {
@@ -308,7 +308,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Leave team
+     * leave team
      */
     public function leave(string $id): JsonResponse
     {

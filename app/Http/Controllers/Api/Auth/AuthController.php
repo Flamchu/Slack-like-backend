@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Services\JwtService;
 use App\Services\ActivityLogService;
@@ -26,7 +25,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Register a new user
+     * register a new user
      */
     public function register(Request $request): JsonResponse
     {
@@ -89,7 +88,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Login user and generate JWT token
+     * login user and generate jwt token
      */
     public function login(Request $request): JsonResponse
     {
@@ -159,7 +158,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Logout user and invalidate token
+     * logout user and invalidate token
      */
     public function logout(Request $request): JsonResponse
     {
@@ -202,7 +201,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Refresh JWT token
+     * refresh jwt token
      */
     public function refresh(Request $request): JsonResponse
     {
@@ -233,7 +232,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Get authenticated user profile
+     * get authenticated user profile
      */
     public function profile(Request $request): JsonResponse
     {
