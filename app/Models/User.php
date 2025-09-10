@@ -112,4 +112,29 @@ class User extends Authenticatable
     {
         return $this->hasMany(Message::class);
     }
+
+    /**
+     * direct messages sent by this user
+     */
+    public function sentDirectMessages()
+    {
+        return $this->hasMany(DirectMessage::class, 'sender_id');
+    }
+
+    /**
+     * direct messages received by this user
+     */
+    public function receivedDirectMessages()
+    {
+        return $this->hasMany(DirectMessage::class, 'receiver_id');
+    }
+
+    /**
+     * all direct messages for this user (sent and received)
+     */
+    public function directMessages()
+    {
+        return DirectMessage::where('sender_id', $this->id)
+            ->orWhere('receiver_id', $this->id);
+    }
 }

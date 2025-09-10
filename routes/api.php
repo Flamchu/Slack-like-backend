@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\ChannelController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\ReactionController;
+use App\Http\Controllers\DirectMessageController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +28,17 @@ Route::group(['prefix' => 'auth'], function () {
 
 // protected routes
 Route::middleware(['jwt.auth'])->group(function () {
+
+    // direct message routes
+    Route::group(['prefix' => 'direct-messages'], function () {
+        Route::post('/', [DirectMessageController::class, 'store']);
+        Route::get('/conversations', [DirectMessageController::class, 'conversations']);
+        Route::get('/conversations/{user}', [DirectMessageController::class, 'conversation']);
+        Route::post('/mark-read/{user}', [DirectMessageController::class, 'markAsRead']);
+        Route::get('/unread-count', [DirectMessageController::class, 'unreadCount']);
+        Route::put('/{message}', [DirectMessageController::class, 'update']);
+        Route::delete('/{message}', [DirectMessageController::class, 'destroy']);
+    });
 
     // team routes
     Route::apiResource('teams', TeamController::class);
