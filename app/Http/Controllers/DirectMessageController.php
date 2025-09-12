@@ -30,16 +30,32 @@ class DirectMessageController extends Controller
             return response()->json(['error' => 'cannot send message to this user'], 403);
         }
 
+        // create base message
         $message = $this->directMessageService->sendMessage(
             $sender->id,
             $receiver->id,
-            $request->input('content'),
-            $request->get('type', 'text')
+            $request->input('content') ?? '',
+            $request->hasFile('file') ? \App\Enums\MessageType::FILE : $request->get('type', 'text')
         );
+
+        // handle file upload
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $path = $file->storePublicly('uploads', ['disk' => 'public']);
+
+            $message->attachments()->create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        }
+
+        $message->load(['sender', 'receiver', 'attachments']);
 
         return response()->json([
             'message' => 'message sent successfully',
-            'data' => $message->load(['sender', 'receiver'])
+            'data' => $message
         ], 201);
     }
 

@@ -21,7 +21,8 @@ class SendDirectMessageRequest extends FormRequest
     {
         return [
             'receiver_id' => 'required|integer|exists:users,id|different:' . auth()->id(),
-            'content' => 'required|string|max:4000',
+            'content' => 'sometimes|string|max:4000|required_without:file',
+            'file' => 'sometimes|file|max:20480',
             'type' => 'sometimes|string|in:text,file,image',
         ];
     }

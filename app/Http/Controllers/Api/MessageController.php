@@ -10,6 +10,7 @@ use App\Services\MessageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class MessageController extends Controller
 {
@@ -57,24 +58,41 @@ class MessageController extends Controller
      */
     public function store(Request $request, Team $team, Channel $channel): JsonResponse
     {
+        // validate either content or file
         $request->validate([
-            'content' => 'required|string|max:2000',
-            'parent_id' => 'nullable|exists:messages,id'
+            'content' => 'nullable|string|max:2000',
+            'parent_id' => 'nullable|exists:messages,id',
+            'file' => 'sometimes|file|max:20480',
         ]);
 
+        // create message record
         $message = $this->messageService->createMessage(
             $channel,
             Auth::user(),
             [
-                'content' => $request->input('content'),
+                'content' => $request->input('content') ?? '',
                 'parent_id' => $request->input('parent_id'),
+                'type' => $request->hasFile('file') ? \App\Enums\MessageType::FILE : \App\Enums\MessageType::TEXT,
             ]
         );
 
-        $message->load(['user:id,name,email', 'reactions.user:id,name,email']);
+        // handle file upload if present
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $path = $file->storePublicly('uploads', ['disk' => 'public']);
+
+            $attachment = $message->attachments()->create([
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        }
+
+        $message->load(['user:id,name,email', 'reactions.user:id,name,email', 'attachments']);
 
         return response()->json([
-            'message' => 'Message created successfully',
+            'message' => 'message created successfully',
             'data' => $this->formatMessage($message)
         ], 201);
     }
@@ -202,6 +220,15 @@ class MessageController extends Controller
             ] : null,
             'replies_count' => $message->replies->count(),
             'reactions' => $reactions,
+            'attachments' => $message->attachments->map(function ($att) {
+                return [
+                    'id' => $att->id,
+                    'file_name' => $att->file_name,
+                    'url' => Storage::url($att->file_path),
+                    'mime_type' => $att->mime_type,
+                    'size' => $att->size,
+                ];
+            })->values(),
         ];
     }
 }
